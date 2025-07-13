@@ -4,12 +4,13 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.local.features.eventHandler.feature.EventHandler
+import ai.koog.agents.features.eventHandler.feature.EventHandler
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import com.opentool.agent.BrowserAgentSettings
 import com.opentool.plugin.ToolPluginRegistry
+import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Core class for the Browser Agent.
@@ -29,6 +30,7 @@ class BrowserAgentCore(
      * 
      * @return An AIAgent instance.
      */
+    @OptIn(ExperimentalUuidApi::class)
     fun createAgent(): AIAgent {
         // Discover plugins if they haven't been discovered yet
         if (pluginRegistry.getAllPlugins().isEmpty()) {
@@ -58,9 +60,6 @@ class BrowserAgentCore(
             install(EventHandler) {
                 onToolCall = { tool, arg ->
                     println("Tool call: ${tool.name} with args: $arg")
-                }
-                onAgentRunError = { error, conf ->
-                    println("Error: $error $conf")
                 }
                 onToolCallResult = { tool, toolArgs, result ->
                     println("Result: ${tool.name}, $toolArgs, ${result?.toStringDefault()}")

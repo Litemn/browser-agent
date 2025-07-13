@@ -16,6 +16,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+app/
 ### Kotlin ###
 .kotlin
 
@@ -43,4 +44,3 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-/app/
