@@ -123,7 +123,7 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
     @LLMDescription("Click on an element by its ref")
     fun clickByRef(
         @LLMDescription(refDescription) ref: String,
-        @LLMDescription("Reason to click on the element") reasonToClick: String
+        @LLMDescription("Reason to click on the element") reasonToClick: String = ""
     ): String {
         // Validate reference
         if (ref.isNullOrBlank()) {
