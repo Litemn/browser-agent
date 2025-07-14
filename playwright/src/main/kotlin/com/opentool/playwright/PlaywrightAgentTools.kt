@@ -39,12 +39,24 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
         }
     }
 
+    @Tool
+    @LLMDescription("Save facts if it needed for the plan or next step, save all facts if it's more that one")
+    fun saveFacts(fact: String): String {
+        return "Facts are saved: $fact"
+    }
+
+    @Tool
+    @LLMDescription("Prepare a detailed step by step plan for browser actions based on the user prompt input, use it before any other action")
+    fun savePlan(@LLMDescription("A comprehensive, sequential plan addressing each stage required to meet the user’s request.") plan: String): String {
+        return "Plan is saved: $plan"
+    }
+
     /**
      * Starts a new browser instance.
-     * 
+     *
      * This method must be called before any other browser operations can be performed.
      * It initializes the Playwright engine and creates a new browser instance.
-     * 
+     *
      * @return A string indicating the result of the operation
      */
     @Tool
@@ -57,10 +69,10 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
 
     /**
      * Captures and returns a snapshot of the current page state.
-     * 
+     *
      * The snapshot includes the visible content of the page and reference IDs for
      * elements that can be used with other methods like clickByRef().
-     * 
+     *
      * @return A string representation of the current page state
      */
     @Tool
@@ -73,7 +85,7 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
 
     /**
      * Clicks at the specified coordinates in the browser.
-     * 
+     *
      * @param x The x-coordinate of the click position
      * @param y The y-coordinate of the click position
      * @return A string describing the result of the operation
@@ -90,6 +102,9 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
             CurrentBrowser.getPage().execute { page ->
                 val mouse = page.mouse() ?: throw IllegalStateException("Mouse interface is not available")
                 mouse.click(x.toDouble(), y.toDouble())
+                if (!CurrentBrowser.isChanged(page)) {
+                    return@execute "Warning: Clicked at coordinates ($x, $y), but page hash has not changed"
+                }
                 return@execute "Success: Clicked at coordinates ($x, $y)"
             }
         }
@@ -97,16 +112,19 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
 
     /**
      * Clicks on an element identified by its reference ID.
-     * 
+     *
      * The reference ID is obtained from a page snapshot and has the format [ref=eNUMBER],
      * for example [ref=e1] or [ref=e35].
-     * 
+     *
      * @param ref The reference ID of the element to click
      * @return A string describing the result of the operation
      */
     @Tool
     @LLMDescription("Click on an element by its ref")
-    fun clickByRef(@LLMDescription(refDescription) ref: String): String {
+    fun clickByRef(
+        @LLMDescription(refDescription) ref: String,
+        @LLMDescription("Reason to click on the element") reasonToClick: String
+    ): String {
         // Validate reference
         if (ref.isNullOrBlank()) {
             return "Error: Element reference cannot be null or empty"
@@ -129,17 +147,28 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
         }
     }
 
+    @Tool
+    @LLMDescription("Press 'enter' key")
+    fun pressEnter(): String {
+        return CurrentBrowser.executeSafely("Error: Failed to press enter") {
+            CurrentBrowser.getPage().execute {
+                it.keyboard().press("Enter")
+                "Success: Pressed enter"
+            }
+        }
+    }
+
     /**
      * Types the specified text using the keyboard.
-     * 
+     *
      * This method simulates keyboard input and types the given text into the
      * currently focused element.
-     * 
+     *
      * @param text The text to type
      * @return A string describing the result of the operation
      */
     @Tool
-    @LLMDescription("Type text using the keyboard")
+    @LLMDescription("Type text using the keyboard, make sure to press `enter` after typing")
     override fun typeText(text: String): String {
         // Validate text
         if (text.isNullOrEmpty()) {
@@ -152,7 +181,14 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
 
                 try {
                     keyboard.type(text)
-                    return@execute "Success: Typed text \"$text\""
+                    val s = page.getByText(text).isVisible
+                    if (s) {
+                        return@execute "Success: Typed text \"$text\""
+                    } else {
+                        val change = if (CurrentBrowser.isChanged(page)) ", But the page has changed" else ""
+                        return@execute "Warning: Typed text \"$text\", but element not found, input element was not focused$change"
+                    }
+
                 } catch (e: Exception) {
                     return@execute "Error: Failed to type text - ${e.message ?: "Unknown error"}"
                 }

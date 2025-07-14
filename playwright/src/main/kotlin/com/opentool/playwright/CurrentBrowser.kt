@@ -1,6 +1,7 @@
 package com.opentool.playwright
 
 import com.microsoft.playwright.*
+import java.security.MessageDigest
 import kotlin.concurrent.atomics.AtomicReference
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
@@ -20,6 +21,11 @@ object CurrentBrowser {
     private val browser: AtomicReference<Browser?> = AtomicReference(null)
     private val page: AtomicReference<Page?> = AtomicReference(null)
     private var lastSnapshot: String? = null
+    private val pageHashes = mutableMapOf<String, String>()
+
+    fun page(): Page? {
+        return page.load()
+    }
 
     /**
      * Starts a new browser instance.
@@ -49,11 +55,22 @@ object CurrentBrowser {
      * @return A BrowserResult containing either the Page instance or an error message
      */
     internal fun getPage(): BrowserResult<Page> {
-        val load = page.load()
-        if (load == null) {
-            return Failure("Page is not initialized, use start browser before")
-        }
+        val load = page.load() ?: return Failure("Page is not initialized, use start browser before")
+        val url = load.url()
+        pageHashes[url] = hashOfPage(load)
         return Success(load)
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    fun hashOfPage(page: Page): String {
+        val instance = MessageDigest.getInstance("MD5")
+        val s = instance.digest(page.content()?.toByteArray())
+        return s.toHexString()
+    }
+
+    fun isChanged(page: Page): Boolean {
+        val hash = pageHashes[page.url()] ?: return false
+        return hash != hashOfPage(page)
     }
 
     /**
