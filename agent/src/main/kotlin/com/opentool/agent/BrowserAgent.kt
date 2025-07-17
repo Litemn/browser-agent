@@ -19,5 +19,5 @@ class BrowserAgent(private val settings: BrowserAgentSettings) {
     /**
      * The AIAgent instance created by the core.
      */
-    val agent: AIAgent by lazy { core.createAgent() }
+    val agent: AIAgent<String, String> by lazy { core.createAgent() }
 }

@@ -21,7 +21,7 @@ import kotlin.uuid.ExperimentalUuidApi
  */
 class BrowserAgentCore(
     private val llmClient: LLMClient,
-    private val strategy: AIAgentStrategy,
+    private val strategy: AIAgentStrategy<String, String>,
     private val agentConfig: AIAgentConfig,
     private val pluginRegistry: ToolPluginRegistry = ToolPluginRegistry.getInstance()
 ) {
@@ -31,7 +31,7 @@ class BrowserAgentCore(
      * @return An AIAgent instance.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun createAgent(): AIAgent {
+    fun createAgent(): AIAgent<String, String> {
         // Discover plugins if they haven't been discovered yet
         if (pluginRegistry.getAllPlugins().isEmpty()) {
             pluginRegistry.discoverPlugins()
@@ -51,21 +51,21 @@ class BrowserAgentCore(
         }
 
         // Create and return the agent
-        return AIAgent(
+        return AIAgent<String, String>(
             promptExecutor = promptExecutor,
             strategy = strategy,
             agentConfig = agentConfig,
             toolRegistry = toolRegistry
         ) {
             install(EventHandler) {
-                onToolCall = { tool, arg ->
-                    println("Tool call: ${tool.name} with args: $arg")
+                onToolCall { event ->
+                    println("Tool call: ${event.tool.name} with args: ${event.toolArgs}")
                 }
-                onToolCallResult = { tool, toolArgs, result ->
-                    println("Result: ${tool.name}, $toolArgs, ${result?.toStringDefault()}")
+                onToolCallResult { event ->
+                    println("Result: ${event.tool.name}, ${event.toolArgs}, ${event.result?.toStringDefault()}")
                 }
-                onAgentFinished = { strategyName, result ->
-                    println("Agent finished: $strategyName, $result")
+                onAgentFinished { event ->
+                    println("Agent finished: $event, ${event.result}")
                 }
             }
         }

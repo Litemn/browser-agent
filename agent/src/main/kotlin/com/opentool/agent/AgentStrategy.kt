@@ -1,7 +1,8 @@
 package com.opentool.agent
 
 import ai.koog.agents.core.agent.session.AIAgentLLMWriteSession
-import ai.koog.agents.core.dsl.builder.AIAgentNodeDelegateBase
+import ai.koog.agents.core.dsl.builder.AIAgentBuilderDslMarker
+import ai.koog.agents.core.dsl.builder.AIAgentNodeDelegate
 import ai.koog.agents.core.dsl.builder.AIAgentSubgraphBuilderBase
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
@@ -28,9 +29,10 @@ object AgentStrategy {
     }
 }
 
-private fun <T> AIAgentSubgraphBuilderBase<*, *>.compressHistory(
+@AIAgentBuilderDslMarker
+private inline fun <reified T> AIAgentSubgraphBuilderBase<*, *>.compressHistory(
     name: String? = null,
-): AIAgentNodeDelegateBase<T, T> =
+): AIAgentNodeDelegate<T, T> =
     node(name) { input ->
         llm.writeSession {
             filterOutSnapshotMessages()

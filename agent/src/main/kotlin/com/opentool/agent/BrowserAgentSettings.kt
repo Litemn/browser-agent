@@ -10,7 +10,7 @@ import com.opentool.plugin.ToolPluginRegistry
 
 data class BrowserAgentSettings(
     val llmClient: LLMClient,
-    val strategy: AIAgentStrategy = AgentStrategy.createStrategy(),
+    val strategy: AIAgentStrategy<String, String> = AgentStrategy.createStrategy(),
     val tools: List<Tool<*, *>> = ToolPluginRegistry.getInstance().apply { discoverPlugins() }.getAllTools(),
     val agentConfig: AIAgentConfig = AIAgentConfig(
         prompt = prompt("browser-agent") {
