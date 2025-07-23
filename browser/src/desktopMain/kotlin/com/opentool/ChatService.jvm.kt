@@ -1,0 +1,115 @@
+package com.opentool
+
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.clients.LLMClient
+import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
+import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
+import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
+import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
+import com.opentool.agent.BrowserAgent
+import com.opentool.agent.BrowserAgentSettings
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.swing.Swing
+
+/**
+ * JVM implementation of ChatService that simulates agent behavior.
+ *
+ * Note: This is a mock implementation for demonstration purposes.
+ * In a real implementation, this would use the BrowserAgent.
+ */
+class JvmChatService : ChatService {
+    private val coroutineScope = CoroutineScope(Dispatchers.Swing)
+
+
+
+    private fun createLLMClient(): LLMClient {
+        val appSettings = SettingsManager.getSettings()
+
+        return when (appSettings.connectionType) {
+            ConnectionType.OPENAI -> {
+                OpenAILLMClient(
+                    apiKey = appSettings.apiKey,
+                    settings = appSettings.host?.let { 
+                        OpenAIClientSettings(baseUrl = it) 
+                    } ?: OpenAIClientSettings()
+                )
+            }
+            ConnectionType.ANTHROPIC -> {
+                AnthropicLLMClient(
+                    apiKey = appSettings.apiKey,
+                    settings = appSettings.host?.let { 
+                        AnthropicClientSettings(baseUrl = it) 
+                    } ?: AnthropicClientSettings()
+                )
+            }
+        }
+    }
+
+    private fun createBrowserAgentSettings(): BrowserAgentSettings {
+        val appSettings = SettingsManager.getSettings()
+        val llmClient = createLLMClient()
+
+        return BrowserAgentSettings(
+            llmClient = llmClient,
+            agentConfig = AIAgentConfig(
+                prompt = prompt("browser-agent") {
+                    system(appSettings.systemPrompt)
+                }, 
+                model = appSettings.toModel(),
+                maxAgentIterations = appSettings.maxIterations
+            )
+        )
+    }
+
+    private val settings by lazy { createBrowserAgentSettings() }
+    private val agent by lazy { BrowserAgent(settings) }
+
+    override fun sendMessage(
+        message: String,
+        onResponse: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (!isAvailable()) {
+            onError(getUnavailableReason() ?: "Service is not available")
+            return
+        }
+
+        // Simulate processing time
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+
+
+                val response = agent.agent.run(message)
+                coroutineScope.launch(Dispatchers.Swing) {
+                    onResponse(response)
+                }
+            } catch (e: Exception) {
+                coroutineScope.launch(Dispatchers.Swing) {
+                    onError("Error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    override fun isAvailable(): Boolean {
+        val appSettings = SettingsManager.getSettings()
+        // Check if API key is provided
+        return appSettings.apiKey.isNotBlank()
+    }
+
+    override fun getUnavailableReason(): String? {
+        val appSettings = SettingsManager.getSettings()
+        return when {
+            appSettings.apiKey.isBlank() -> "API key is not configured. Please go to Settings to configure it."
+            else -> null
+        }
+    }
+}
+
+/**
+ * Gets the chat service implementation for the JVM platform.
+ */
+actual fun getChatService(): ChatService = JvmChatService()

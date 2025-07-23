@@ -55,6 +55,8 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(project(":agent"))
+            implementation(libs.koog)
         }
     }
 }
