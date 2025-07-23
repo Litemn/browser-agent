@@ -6,10 +6,10 @@ group = "com.open-tool"
 repositories {
     mavenCentral()
 }
-val koogVersion: String by project
+
 dependencies {
     implementation(project(":tools"))
-    implementation("ai.koog:koog-agents:${koogVersion}")
+    implementation(libs.koog)
     implementation("com.microsoft.playwright:driver:1.52.0")
     implementation("com.microsoft.playwright:driver-bundle:1.52.0")
     implementation("com.microsoft.playwright:playwright:1.52.0")

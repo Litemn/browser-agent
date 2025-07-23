@@ -7,9 +7,9 @@ group = "com.open-tool"
 repositories {
     mavenCentral()
 }
-val koogVersion: String by project
+
 dependencies {
-    implementation("ai.koog:koog-agents:${koogVersion}")
+    implementation(libs.koog)
     implementation(project(":agent"))
     testImplementation(kotlin("test"))
 }
