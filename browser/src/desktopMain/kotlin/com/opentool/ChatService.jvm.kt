@@ -1,6 +1,8 @@
 package com.opentool
 
 import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.tools.reflect.ToolFromCallable
+import ai.koog.agents.features.eventHandler.feature.EventHandlerConfig
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
@@ -20,28 +22,37 @@ import kotlinx.coroutines.swing.Swing
  * Note: This is a mock implementation for demonstration purposes.
  * In a real implementation, this would use the BrowserAgent.
  */
-class JvmChatService : ChatService {
+
+class JvmChatService(private val updateListener: UpdateListener) : ChatService {
     private val coroutineScope = CoroutineScope(Dispatchers.Swing)
+
+    val eventHandler: EventHandlerConfig.() -> Unit = {
+        onToolCall {
+            updateListener.onUpdate("Tool call: ${it.tool.name} with args: ${it.toolArgs}")
+        }
+    }
 
 
 
     private fun createLLMClient(): LLMClient {
+
         val appSettings = SettingsManager.getSettings()
 
         return when (appSettings.connectionType) {
             ConnectionType.OPENAI -> {
                 OpenAILLMClient(
                     apiKey = appSettings.apiKey,
-                    settings = appSettings.host?.let { 
-                        OpenAIClientSettings(baseUrl = it) 
+                    settings = appSettings.host?.let {
+                        OpenAIClientSettings(baseUrl = it)
                     } ?: OpenAIClientSettings()
                 )
             }
+
             ConnectionType.ANTHROPIC -> {
                 AnthropicLLMClient(
                     apiKey = appSettings.apiKey,
-                    settings = appSettings.host?.let { 
-                        AnthropicClientSettings(baseUrl = it) 
+                    settings = appSettings.host?.let {
+                        AnthropicClientSettings(baseUrl = it)
                     } ?: AnthropicClientSettings()
                 )
             }
@@ -54,12 +65,13 @@ class JvmChatService : ChatService {
 
         return BrowserAgentSettings(
             llmClient = llmClient,
+            eventHandler = eventHandler,
             agentConfig = AIAgentConfig(
                 prompt = prompt("browser-agent") {
                     system(appSettings.systemPrompt)
-                }, 
+                },
                 model = appSettings.toModel(),
-                maxAgentIterations = appSettings.maxIterations
+                maxAgentIterations = appSettings.maxIterations,
             )
         )
     }
@@ -70,24 +82,38 @@ class JvmChatService : ChatService {
     override fun sendMessage(
         message: String,
         onResponse: (String) -> Unit,
-        onError: (String) -> Unit
+        onUpdate: (String) -> Unit,
+        onError: (String) -> Unit,
+        onStatus: (String) -> Unit
+
     ) {
         if (!isAvailable()) {
             onError(getUnavailableReason() ?: "Service is not available")
             return
         }
 
-        // Simulate processing time
+        // Report initial status
+        coroutineScope.launch(Dispatchers.Swing) {
+            onStatus("Starting agent execution...")
+        }
+        // Execute agent
         coroutineScope.launch(Dispatchers.IO) {
             try {
-
+                // Report status before running the agent
+                coroutineScope.launch(Dispatchers.Swing) {
+                    onStatus("Processing your request...")
+                }
 
                 val response = agent.agent.run(message)
+
+                // Report completion
                 coroutineScope.launch(Dispatchers.Swing) {
+                    onStatus("Agent execution completed")
                     onResponse(response)
                 }
             } catch (e: Exception) {
                 coroutineScope.launch(Dispatchers.Swing) {
+                    onStatus("Error during agent execution: ${e.message}")
                     onError("Error: ${e.message}")
                 }
             }
@@ -112,4 +138,4 @@ class JvmChatService : ChatService {
 /**
  * Gets the chat service implementation for the JVM platform.
  */
-actual fun getChatService(): ChatService = JvmChatService()
+actual fun getChatService(listener: UpdateListener): ChatService = JvmChatService(listener)

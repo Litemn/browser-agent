@@ -10,7 +10,8 @@ package com.opentool
 data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val isTool: Boolean = false
 )
 
 /**
@@ -22,12 +23,16 @@ interface ChatService {
      *
      * @param message The message to send
      * @param onResponse Callback for when a response is received
+     * @param onUpdate Callback for when a status update is received
      * @param onError Callback for when an error occurs
+     * @param onStatus Callback for status updates during agent execution
      */
     fun sendMessage(
         message: String,
         onResponse: (String) -> Unit,
-        onError: (String) -> Unit
+        onUpdate: (String) -> Unit = {},
+        onError: (String) -> Unit,
+        onStatus: (String) -> Unit = {}
     )
 
     /**
@@ -48,4 +53,8 @@ interface ChatService {
 /**
  * Gets the chat service implementation for the current platform.
  */
-expect fun getChatService(): ChatService
+expect fun getChatService(listener: UpdateListener): ChatService
+
+interface UpdateListener {
+    fun onUpdate(message: String)
+}

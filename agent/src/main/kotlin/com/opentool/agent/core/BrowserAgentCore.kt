@@ -5,6 +5,7 @@ import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.features.eventHandler.feature.EventHandler
+import ai.koog.agents.features.eventHandler.feature.EventHandlerConfig
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
@@ -23,6 +24,7 @@ class BrowserAgentCore(
     private val llmClient: LLMClient,
     private val strategy: AIAgentStrategy<String, String>,
     private val agentConfig: AIAgentConfig,
+    private val eventHandler: EventHandlerConfig.() -> Unit = {},
     private val pluginRegistry: ToolPluginRegistry = ToolPluginRegistry.getInstance()
 ) {
     /**
@@ -68,6 +70,8 @@ class BrowserAgentCore(
                     println("Agent finished: $event, ${event.result}")
                 }
             }
+            install(EventHandler, eventHandler)
+
         }
     }
 
@@ -82,7 +86,8 @@ class BrowserAgentCore(
             return BrowserAgentCore(
                 llmClient = settings.llmClient,
                 strategy = settings.strategy,
-                agentConfig = settings.agentConfig
+                agentConfig = settings.agentConfig,
+                eventHandler = settings.eventHandler
             )
         }
     }

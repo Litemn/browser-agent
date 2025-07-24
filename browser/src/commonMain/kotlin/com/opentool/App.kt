@@ -43,8 +43,13 @@ fun App() {
     var anthropicModel by remember { mutableStateOf(currentSettings.anthropicModel) }
     var systemPrompt by remember { mutableStateOf(currentSettings.systemPrompt) }
 
+    val updateListener = remember { object: UpdateListener {
+        override fun onUpdate(message: String) {
+            messages = messages.filterNot { it.isTool } + ChatMessage(message, isFromUser = false, isLoading = false, isTool = true)
+        }
+    } }
     // Get the chat service for the current platform
-    val chatService = remember { getChatService() }
+    val chatService = remember { getChatService(updateListener) }
 
     MaterialTheme {
         Column(
@@ -89,6 +94,37 @@ fun App() {
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(bottom = 8.dp)
                             )
+                            // Buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = { showSettings = false }
+                                ) {
+                                    Text("Cancel")
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val newSettings = AppSettings(
+                                            apiKey = apiKey,
+                                            maxIterations = maxIterations.toIntOrNull() ?: 50,
+                                            host = if (host.isBlank()) null else host,
+                                            connectionType = connectionType,
+                                            openAIModel = openAIModel,
+                                            anthropicModel = anthropicModel,
+                                            systemPrompt = systemPrompt
+                                        )
+                                        SettingsManager.updateSettings(newSettings)
+                                        showSettings = false
+                                    },
+                                    modifier = Modifier.padding(start = 8.dp)
+                                ) {
+                                    Text("Save")
+                                }
+                            }
 
                             // API Key
                             OutlinedTextField(
@@ -123,7 +159,7 @@ fun App() {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                ConnectionType.values().forEach { type ->
+                                ConnectionType.entries.forEach { type ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.padding(end = 8.dp)
@@ -143,7 +179,7 @@ fun App() {
                             // OpenAI model selection (only shown when OpenAI is selected)
                             if (connectionType == ConnectionType.OPENAI) {
                                 Column {
-                                    OpenAIModel.values().forEach { model ->
+                                    OpenAIModel.entries.forEach { model ->
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.padding(vertical = 4.dp)
@@ -161,7 +197,7 @@ fun App() {
                             // Anthropic model selection (only shown when Anthropic is selected)
                             if (connectionType == ConnectionType.ANTHROPIC) {
                                 Column {
-                                    AnthropicModel.values().forEach { model ->
+                                    AnthropicModel.entries.forEach { model ->
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.padding(vertical = 4.dp)
@@ -191,37 +227,7 @@ fun App() {
                                 maxLines = 20
                             )
 
-                            // Buttons
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                                horizontalArrangement = Arrangement.End,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                TextButton(
-                                    onClick = { showSettings = false }
-                                ) {
-                                    Text("Cancel")
-                                }
 
-                                Button(
-                                    onClick = {
-                                        val newSettings = AppSettings(
-                                            apiKey = apiKey,
-                                            maxIterations = maxIterations.toIntOrNull() ?: 50,
-                                            host = if (host.isBlank()) null else host,
-                                            connectionType = connectionType,
-                                            openAIModel = openAIModel,
-                                            anthropicModel = anthropicModel,
-                                            systemPrompt = systemPrompt
-                                        )
-                                        SettingsManager.updateSettings(newSettings)
-                                        showSettings = false
-                                    },
-                                    modifier = Modifier.padding(start = 8.dp)
-                                ) {
-                                    Text("Save")
-                                }
-                            }
                         }
                     }
                 }
@@ -266,15 +272,21 @@ fun App() {
                                     userRequest,
                                     onResponse = { response ->
                                         // Remove loading message and add response
-                                        messages = messages.filterNot { it.isLoading } + 
+                                        messages = messages.filterNot { it.isLoading  }.filterNot { it.isTool } +
                                             ChatMessage(response, false)
                                         isProcessing = false
                                     },
                                     onError = { errorMessage ->
                                         // Remove loading message and add error
-                                        messages = messages.filterNot { it.isLoading } + 
+                                        messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
                                             ChatMessage("Error: $errorMessage", false)
                                         isProcessing = false
+                                    },
+                                    onStatus = { statusMessage ->
+                                        // Update the loading message with the status
+                                        messages = messages.map {
+                                            if (it.isLoading) ChatMessage(statusMessage, false, true) else it
+                                        }
                                     }
                                 )
                             }
@@ -323,15 +335,21 @@ fun App() {
                                 userRequest,
                                 onResponse = { response ->
                                     // Remove loading message and add response
-                                    messages = messages.filterNot { it.isLoading } + 
+                                    messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
                                         ChatMessage(response, false)
                                     isProcessing = false
                                 },
                                 onError = { errorMessage ->
                                     // Remove loading message and add error
-                                    messages = messages.filterNot { it.isLoading } + 
+                                    messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
                                         ChatMessage("Error: $errorMessage", false)
                                     isProcessing = false
+                                },
+                                onStatus = { statusMessage ->
+                                    // Update the loading message with the status
+                                    messages = messages.map {
+                                        if (it.isLoading) ChatMessage(statusMessage, false, true) else it
+                                    }
                                 }
                             )
                         }
@@ -364,6 +382,7 @@ fun ChatMessageItem(
     val backgroundColor = when {
         message.isLoading -> MaterialTheme.colorScheme.surfaceVariant
         message.isFromUser -> MaterialTheme.colorScheme.primaryContainer
+        message.isTool -> MaterialTheme.colorScheme.secondaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer
     }
 
@@ -378,7 +397,7 @@ fun ChatMessageItem(
         ) {
             Box(
                 modifier = Modifier
-                    .widthIn(max = 300.dp)
+                    .widthIn(max = 600.dp)
                     .clip(
                         RoundedCornerShape(
                             topStart = 8.dp,
@@ -396,7 +415,16 @@ fun ChatMessageItem(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text(message.content)
+                    if (message.isTool) {
+                        Text(
+                            message.content,
+                            color = MaterialTheme.colorScheme.outline,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    } else {
+                        Text(message.content)
+                    }
                 }
             }
 
