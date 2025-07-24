@@ -91,8 +91,13 @@ fun App() {
                         shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surface
                     ) {
+                        val settingsScrollState = rememberScrollState()
                         Column(
-                            modifier = Modifier.padding(16.dp),
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth()
+                                .heightIn(max = 600.dp)
+                                .verticalScroll(settingsScrollState),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
@@ -238,15 +243,13 @@ fun App() {
 
                             // System Prompt
                             Text("System Prompt:", modifier = Modifier.padding(top = 8.dp))
-                            val scrollState = rememberScrollState()
                             OutlinedTextField(
                                 value = systemPrompt,
                                 onValueChange = { systemPrompt = it },
                                 label = { Text("System Prompt") },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .heightIn(min = 200.dp)
-                                    .verticalScroll(scrollState),
+                                    .heightIn(min = 200.dp),
                                 minLines = 5,
                                 maxLines = 20
                             )
