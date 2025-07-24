@@ -56,6 +56,7 @@ data class AppSettings(
     val connectionType: ConnectionType = ConnectionType.OPENAI,
     val openAIModel: OpenAIModel = OpenAIModel.GPT4O_MINI,
     val anthropicModel: AnthropicModel = AnthropicModel.CLAUDE_3_7_SONNET,
+    val headless: Boolean = false,
     val systemPrompt: String = """
         You are an AI agent designed to automate browser tasks. Your goal is to accomplish the ultimate task following the rules
 

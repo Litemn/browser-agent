@@ -3,14 +3,16 @@ package com.opentool.agent.core
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
+import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.core.tools.reflect.asTools
 import ai.koog.agents.features.eventHandler.feature.EventHandler
 import ai.koog.agents.features.eventHandler.feature.EventHandlerConfig
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import com.opentool.agent.BrowserAgentSettings
-import com.opentool.plugin.ToolPluginRegistry
+import com.opentool.playwright.PlaywrightAgentTools
 import kotlin.uuid.ExperimentalUuidApi
 
 /**
@@ -25,7 +27,8 @@ class BrowserAgentCore(
     private val strategy: AIAgentStrategy<String, String>,
     private val agentConfig: AIAgentConfig,
     private val eventHandler: EventHandlerConfig.() -> Unit = {},
-    private val pluginRegistry: ToolPluginRegistry = ToolPluginRegistry.getInstance()
+    private val headless: Boolean = false,
+    private val tools: List<Tool<*, *>> = PlaywrightAgentTools(headless).asTools(),
 ) {
     /**
      * Create an AIAgent with the configured settings and tools.
@@ -34,13 +37,6 @@ class BrowserAgentCore(
      */
     @OptIn(ExperimentalUuidApi::class)
     fun createAgent(): AIAgent<String, String> {
-        // Discover plugins if they haven't been discovered yet
-        if (pluginRegistry.getAllPlugins().isEmpty()) {
-            pluginRegistry.discoverPlugins()
-        }
-
-        // Get all tools from all registered plugins
-        val tools = pluginRegistry.getAllTools()
 
         // Create prompt executor
         val promptExecutor: PromptExecutor = SingleLLMPromptExecutor(
@@ -87,7 +83,9 @@ class BrowserAgentCore(
                 llmClient = settings.llmClient,
                 strategy = settings.strategy,
                 agentConfig = settings.agentConfig,
-                eventHandler = settings.eventHandler
+                eventHandler = settings.eventHandler,
+                headless = settings.headless,
+                tools = settings.tools,
             )
         }
     }

@@ -22,7 +22,7 @@ private const val refDescription =
  * with the Playwright API.
  */
 @LLMDescription("Tools for browser automation based on Playwright and snapshots")
-class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
+class PlaywrightAgentTools(private val headless: Boolean) : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
     /**
      * Closes the browser and releases all associated resources.
      * 
@@ -63,7 +63,7 @@ class PlaywrightAgentTools : Snapshot, Mouse, Keyboard, Navigation, ToolSet {
     @LLMDescription("Start browser, use it before any other action")
     fun startBrowser(): String {
         return CurrentBrowser.executeSafely("Error: Failed to start browser") {
-            CurrentBrowser.startBrowser()
+            CurrentBrowser.startBrowser(headless)
         }
     }
 

@@ -1,7 +1,6 @@
 package com.opentool
 
 import ai.koog.agents.core.agent.config.AIAgentConfig
-import ai.koog.agents.core.tools.reflect.ToolFromCallable
 import ai.koog.agents.features.eventHandler.feature.EventHandlerConfig
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.LLMClient
@@ -33,10 +32,8 @@ class JvmChatService(private val updateListener: UpdateListener) : ChatService {
     }
 
 
+    private fun createLLMClient(appSettings: AppSettings): LLMClient {
 
-    private fun createLLMClient(): LLMClient {
-
-        val appSettings = SettingsManager.getSettings()
 
         return when (appSettings.connectionType) {
             ConnectionType.OPENAI -> {
@@ -61,11 +58,12 @@ class JvmChatService(private val updateListener: UpdateListener) : ChatService {
 
     private fun createBrowserAgentSettings(): BrowserAgentSettings {
         val appSettings = SettingsManager.getSettings()
-        val llmClient = createLLMClient()
+        val llmClient = createLLMClient(appSettings)
 
         return BrowserAgentSettings(
             llmClient = llmClient,
             eventHandler = eventHandler,
+            headless = appSettings.headless,
             agentConfig = AIAgentConfig(
                 prompt = prompt("browser-agent") {
                     system(appSettings.systemPrompt)

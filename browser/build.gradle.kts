@@ -38,6 +38,7 @@ kotlin {
 
     sourceSets {
         val desktopMain by getting
+        val wasmJsMain by getting
 
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -48,6 +49,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtimeCompose)
+            implementation(libs.multiplatformSettings)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -57,6 +59,10 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
             implementation(project(":agent"))
             implementation(libs.koog)
+            implementation(libs.multiplatformSettings.jvm)
+        }
+        wasmJsMain.dependencies {
+           // implementation(libs.multiplatformSettings.js)
         }
     }
 }

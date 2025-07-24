@@ -4,66 +4,58 @@ import kotlinx.browser.localStorage
 
 /**
  * WasmJs implementation of settings storage using localStorage.
+ * This implementation uses individual localStorage keys for each setting,
+ * similar to how multiplatform-settings works.
  */
 class WasmJsSettingsStorage : SettingsStorage {
-    private val settingsKey = "browser-agent-settings"
+    companion object {
+        private const val PREFIX = "browser-agent-"
+        private const val KEY_API_KEY = "${PREFIX}apiKey"
+        private const val KEY_MAX_ITERATIONS = "${PREFIX}maxIterations"
+        private const val KEY_HOST = "${PREFIX}host"
+        private const val KEY_CONNECTION_TYPE = "${PREFIX}connectionType"
+        private const val KEY_OPENAI_MODEL = "${PREFIX}openAIModel"
+        private const val KEY_ANTHROPIC_MODEL = "${PREFIX}anthropicModel"
+        private const val KEY_SYSTEM_PROMPT = "${PREFIX}systemPrompt"
+    }
 
     override fun saveSettings(settings: AppSettings) {
-        // Create a simple JSON-like string representation of the settings
-        val settingsJson = """
-            {
-                "apiKey": "${settings.apiKey}",
-                "maxIterations": ${settings.maxIterations},
-                "host": "${settings.host ?: ""}",
-                "connectionType": "${settings.connectionType.name}",
-                "openAIModel": "${settings.openAIModel.name}",
-                "anthropicModel": "${settings.anthropicModel.name}",
-                "systemPrompt": "${settings.systemPrompt.replace("\"", "\\\"").replace("\n", "\\n")}"
-            }
-        """.trimIndent()
-
-        // Save to localStorage
-        localStorage.setItem(settingsKey, settingsJson)
+        // Save each setting as an individual key in localStorage
+        localStorage.setItem(KEY_API_KEY, settings.apiKey)
+        localStorage.setItem(KEY_MAX_ITERATIONS, settings.maxIterations.toString())
+        localStorage.setItem(KEY_HOST, settings.host ?: "")
+        localStorage.setItem(KEY_CONNECTION_TYPE, settings.connectionType.name)
+        localStorage.setItem(KEY_OPENAI_MODEL, settings.openAIModel.name)
+        localStorage.setItem(KEY_ANTHROPIC_MODEL, settings.anthropicModel.name)
+        localStorage.setItem(KEY_SYSTEM_PROMPT, settings.systemPrompt)
     }
 
     override fun loadSettings(): AppSettings? {
-        // Get from localStorage
-        val settingsJson = localStorage.getItem(settingsKey) ?: return null
-
-        // Parse the JSON-like string
-        // This is a simple implementation without a proper JSON parser
-        // In a real application, you would use a proper JSON parser
-
-        // Extract values using regex
-        val apiKey = extractValue(settingsJson, "apiKey") ?: ""
-        val maxIterations = extractValue(settingsJson, "maxIterations")?.toIntOrNull() ?: 50
-        val host = extractValue(settingsJson, "host")?.takeIf { it.isNotBlank() }
-        val connectionTypeName = extractValue(settingsJson, "connectionType") ?: ConnectionType.OPENAI.name
-        val openAIModelName = extractValue(settingsJson, "openAIModel") ?: OpenAIModel.GPT4O_MINI.name
-        val anthropicModelName = extractValue(settingsJson, "anthropicModel") ?: AnthropicModel.CLAUDE_3_7_SONNET.name
-        val systemPrompt = extractValue(settingsJson, "systemPrompt")?.replace("\\\"", "\"")?.replace("\\n", "\n") ?: AppSettings().systemPrompt
+        // Check if we have any settings stored
+        if (localStorage.getItem(KEY_API_KEY) == null) {
+            return null
+        }
 
         return try {
             AppSettings(
-                apiKey = apiKey,
-                maxIterations = maxIterations,
-                host = host,
-                connectionType = ConnectionType.valueOf(connectionTypeName),
-                openAIModel = OpenAIModel.valueOf(openAIModelName),
-                anthropicModel = AnthropicModel.valueOf(anthropicModelName),
-                systemPrompt = systemPrompt
+                apiKey = localStorage.getItem(KEY_API_KEY) ?: "",
+                maxIterations = localStorage.getItem(KEY_MAX_ITERATIONS)?.toIntOrNull() ?: 50,
+                host = localStorage.getItem(KEY_HOST)?.takeIf { it.isNotBlank() },
+                connectionType = ConnectionType.valueOf(
+                    localStorage.getItem(KEY_CONNECTION_TYPE) ?: ConnectionType.OPENAI.name
+                ),
+                openAIModel = OpenAIModel.valueOf(
+                    localStorage.getItem(KEY_OPENAI_MODEL) ?: OpenAIModel.GPT4O_MINI.name
+                ),
+                anthropicModel = AnthropicModel.valueOf(
+                    localStorage.getItem(KEY_ANTHROPIC_MODEL) ?: AnthropicModel.CLAUDE_3_7_SONNET.name
+                ),
+                systemPrompt = localStorage.getItem(KEY_SYSTEM_PROMPT) ?: AppSettings().systemPrompt
             )
         } catch (e: Exception) {
             // If there's any error parsing the settings, return null
             null
         }
-    }
-
-    // Helper function to extract a value from the JSON-like string
-    private fun extractValue(json: String, key: String): String? {
-        val regex = """"$key"\s*:\s*"?([^"]*)"?""".toRegex()
-        val matchResult = regex.find(json) ?: return null
-        return matchResult.groupValues[1]
     }
 }
 

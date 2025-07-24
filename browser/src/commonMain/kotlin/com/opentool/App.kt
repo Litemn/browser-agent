@@ -27,7 +27,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 @Preview
 fun App() {
-    val coroutineScope = rememberCoroutineScope()
     var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
     var inputText by remember { mutableStateOf("") }
     var isProcessing by remember { mutableStateOf(false) }
@@ -42,14 +41,22 @@ fun App() {
     var openAIModel by remember { mutableStateOf(currentSettings.openAIModel) }
     var anthropicModel by remember { mutableStateOf(currentSettings.anthropicModel) }
     var systemPrompt by remember { mutableStateOf(currentSettings.systemPrompt) }
+    var headless by remember { mutableStateOf(currentSettings.headless) }
 
-    val updateListener = remember { object: UpdateListener {
-        override fun onUpdate(message: String) {
-            messages = messages.filterNot { it.isTool } + ChatMessage(message, isFromUser = false, isLoading = false, isTool = true)
+    val updateListener = remember {
+        object : UpdateListener {
+            override fun onUpdate(message: String) {
+                messages = messages.filterNot { it.isTool } + ChatMessage(
+                    message,
+                    isFromUser = false,
+                    isLoading = false,
+                    isTool = true
+                )
+            }
         }
-    } }
+    }
     // Get the chat service for the current platform
-    val chatService = remember { getChatService(updateListener) }
+    val chatService = getChatService(updateListener)
 
     MaterialTheme {
         Column(
@@ -111,10 +118,11 @@ fun App() {
                                         val newSettings = AppSettings(
                                             apiKey = apiKey,
                                             maxIterations = maxIterations.toIntOrNull() ?: 50,
-                                            host = if (host.isBlank()) null else host,
+                                            host = host.ifBlank { null },
                                             connectionType = connectionType,
                                             openAIModel = openAIModel,
                                             anthropicModel = anthropicModel,
+                                            headless = headless,
                                             systemPrompt = systemPrompt
                                         )
                                         SettingsManager.updateSettings(newSettings)
@@ -212,6 +220,22 @@ fun App() {
                                 }
                             }
 
+                            // Headless Mode
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                            ) {
+                                Text("Headless Mode:", modifier = Modifier.padding(end = 8.dp))
+                                Switch(
+                                    checked = headless,
+                                    onCheckedChange = { headless = it }
+                                )
+                                Text(
+                                    if (headless) "Enabled" else "Disabled",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+
                             // System Prompt
                             Text("System Prompt:", modifier = Modifier.padding(top = 8.dp))
                             val scrollState = rememberScrollState()
@@ -272,14 +296,14 @@ fun App() {
                                     userRequest,
                                     onResponse = { response ->
                                         // Remove loading message and add response
-                                        messages = messages.filterNot { it.isLoading  }.filterNot { it.isTool } +
-                                            ChatMessage(response, false)
+                                        messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
+                                                ChatMessage(response, false)
                                         isProcessing = false
                                     },
                                     onError = { errorMessage ->
                                         // Remove loading message and add error
                                         messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
-                                            ChatMessage("Error: $errorMessage", false)
+                                                ChatMessage("Error: $errorMessage", false)
                                         isProcessing = false
                                     },
                                     onStatus = { statusMessage ->
@@ -336,13 +360,13 @@ fun App() {
                                 onResponse = { response ->
                                     // Remove loading message and add response
                                     messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
-                                        ChatMessage(response, false)
+                                            ChatMessage(response, false)
                                     isProcessing = false
                                 },
                                 onError = { errorMessage ->
                                     // Remove loading message and add error
                                     messages = messages.filterNot { it.isLoading }.filterNot { it.isTool } +
-                                        ChatMessage("Error: $errorMessage", false)
+                                            ChatMessage("Error: $errorMessage", false)
                                     isProcessing = false
                                 },
                                 onStatus = { statusMessage ->

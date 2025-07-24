@@ -12,6 +12,7 @@ androidx-lifecycle = "2.9.1"
 composeHotReload = "1.0.0-alpha11"
 composeMultiplatform = "1.8.1"
 junit = "4.13.2"
+multiplatformSettings = "1.3.0"
 
 [libraries]
 kotlinGradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -25,6 +26,9 @@ androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:life
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 koog = { module = "ai.koog:koog-agents", version.ref = "koog" }
+multiplatformSettings = { module = "com.russhwolf:multiplatform-settings", version.ref = "multiplatformSettings" }
+multiplatformSettings-jvm = { module = "com.russhwolf:multiplatform-settings-jvm", version.ref = "multiplatformSettings" }
+multiplatformSettings-js = { module = "com.russhwolf:multiplatform-settings-js", version.ref = "multiplatformSettings" }
 
 # Libraries can be bundled together for easier import
 [bundles]
