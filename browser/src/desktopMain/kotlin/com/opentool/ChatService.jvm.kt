@@ -53,6 +53,14 @@ class JvmChatService(private val updateListener: UpdateListener) : ChatService {
                     } ?: AnthropicClientSettings()
                 )
             }
+
+            ConnectionType.LMSTUDIO -> {
+                val lmStudioUrl = appSettings.host ?: "http://localhost:1234"
+                OpenAILLMClient(
+                    apiKey = appSettings.apiKey, // LMStudio ignores API keys, but we need a non-empty value
+                    settings = OpenAIClientSettings(baseUrl = lmStudioUrl)
+                )
+            }
         }
     }
 
@@ -120,14 +128,21 @@ class JvmChatService(private val updateListener: UpdateListener) : ChatService {
 
     override fun isAvailable(): Boolean {
         val appSettings = SettingsManager.getSettings()
-        // Check if API key is provided
-        return appSettings.apiKey.isNotBlank()
+        // For LMStudio, we only need to check if the connection type is set correctly
+        // and optionally if a host is configured (defaults to localhost:1234)
+        return when (appSettings.connectionType) {
+            ConnectionType.LMSTUDIO -> true // LMStudio doesn't require API key
+            else -> appSettings.apiKey.isNotBlank() // OpenAI and Anthropic require API keys
+        }
     }
 
     override fun getUnavailableReason(): String? {
         val appSettings = SettingsManager.getSettings()
         return when {
-            appSettings.apiKey.isBlank() -> "API key is not configured. Please go to Settings to configure it."
+            appSettings.connectionType != ConnectionType.LMSTUDIO && appSettings.apiKey.isBlank() -> 
+                "API key is not configured. Please go to Settings to configure it."
+            appSettings.connectionType == ConnectionType.LMSTUDIO && appSettings.host.isNullOrBlank() -> 
+                "LMStudio host is not configured. Please configure the host URL (default: http://localhost:1234) in Settings."
             else -> null
         }
     }

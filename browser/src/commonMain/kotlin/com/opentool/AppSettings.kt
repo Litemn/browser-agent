@@ -5,7 +5,8 @@ package com.opentool
  */
 enum class ConnectionType {
     OPENAI,
-    ANTHROPIC
+    ANTHROPIC,
+    LMSTUDIO
 }
 
 /**
@@ -39,14 +40,29 @@ enum class AnthropicModel {
 }
 
 /**
+ * Enum representing LMStudio models.
+ */
+enum class LMStudioModel {
+    CUSTOM;
+
+    override fun toString(): String {
+        return when (this) {
+            CUSTOM -> "Custom Model"
+        }
+    }
+}
+
+/**
  * Settings for the browser agent application.
  *
  * @property apiKey The API key to use for the LLM service
  * @property maxIterations The maximum number of iterations for the agent
  * @property host Optional host URL for the LLM service (if null, uses the default)
- * @property connectionType The type of LLM connection to use (OpenAI or Anthropic)
+ * @property connectionType The type of LLM connection to use (OpenAI, Anthropic, or LMStudio)
  * @property openAIModel The OpenAI model to use (only applicable when connectionType is OPENAI)
  * @property anthropicModel The Anthropic model to use (only applicable when connectionType is ANTHROPIC)
+ * @property lmStudioModel The LMStudio model to use (only applicable when connectionType is LMSTUDIO)
+ * @property lmStudioCustomModel Custom model name for LMStudio (if empty, uses the selected predefined model)
  * @property systemPrompt The system prompt to use for the agent
  */
 data class AppSettings(
@@ -56,6 +72,8 @@ data class AppSettings(
     val connectionType: ConnectionType = ConnectionType.OPENAI,
     val openAIModel: OpenAIModel = OpenAIModel.GPT4O_MINI,
     val anthropicModel: AnthropicModel = AnthropicModel.CLAUDE_3_7_SONNET,
+    val lmStudioModel: LMStudioModel? = null,
+    val lmStudioCustomModel: String = "",
     val headless: Boolean = false,
     val systemPrompt: String = """
         You are an AI agent designed to automate browser tasks. Your goal is to accomplish the ultimate task following the rules
@@ -86,7 +104,19 @@ data class AppSettings(
         – Track status/progress in memory.
         – Use procedural memory summaries to stay on track and avoid repeating steps.
     """.trimIndent()
-)
+) {
+    /**
+     * Gets the actual LMStudio model name to use.
+     * Returns the custom model name if specified and CUSTOM is selected,
+     * otherwise returns the predefined model name.
+     */
+    fun getLMStudioModelName(): String {
+        return when (lmStudioModel) {
+            LMStudioModel.CUSTOM -> lmStudioCustomModel.takeIf { it.isNotBlank() } ?: ""
+            null -> ""
+        }
+    }
+}
 
 /**
  * Singleton object to store and manage application settings.

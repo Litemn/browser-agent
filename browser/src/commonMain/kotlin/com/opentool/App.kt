@@ -40,6 +40,8 @@ fun App() {
     var connectionType by remember { mutableStateOf(currentSettings.connectionType) }
     var openAIModel by remember { mutableStateOf(currentSettings.openAIModel) }
     var anthropicModel by remember { mutableStateOf(currentSettings.anthropicModel) }
+    var lmStudioModel by remember { mutableStateOf(currentSettings.lmStudioModel) }
+    var lmStudioCustomModel by remember { mutableStateOf(currentSettings.lmStudioCustomModel) }
     var systemPrompt by remember { mutableStateOf(currentSettings.systemPrompt) }
     var headless by remember { mutableStateOf(currentSettings.headless) }
 
@@ -127,6 +129,8 @@ fun App() {
                                             connectionType = connectionType,
                                             openAIModel = openAIModel,
                                             anthropicModel = anthropicModel,
+                                            lmStudioModel = lmStudioModel,
+                                            lmStudioCustomModel = lmStudioCustomModel,
                                             headless = headless,
                                             systemPrompt = systemPrompt
                                         )
@@ -139,15 +143,15 @@ fun App() {
                                 }
                             }
 
-                            // API Key
-                            OutlinedTextField(
-                                value = apiKey,
-                                onValueChange = { apiKey = it },
-                                label = { Text("API Key") },
-                                modifier = Modifier.fillMaxWidth(),
-                                visualTransformation = PasswordVisualTransformation(),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-                            )
+                            // API Key (not required for LMStudio)
+                                OutlinedTextField(
+                                    value = apiKey,
+                                    onValueChange = { apiKey = it },
+                                    label = { Text("API Key") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    visualTransformation = PasswordVisualTransformation(),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+                                )
 
                             // Max Iterations
                             OutlinedTextField(
@@ -158,12 +162,24 @@ fun App() {
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                             )
 
-                            // Host (optional)
+                            // Host (with different labels based on connection type)
                             OutlinedTextField(
                                 value = host,
                                 onValueChange = { host = it },
-                                label = { Text("Host (optional)") },
-                                modifier = Modifier.fillMaxWidth()
+                                label = { 
+                                    Text(
+                                        when (connectionType) {
+                                            ConnectionType.LMSTUDIO -> "LMStudio URL (default: http://localhost:1234)"
+                                            else -> "Host (optional)"
+                                        }
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = {
+                                    if (connectionType == ConnectionType.LMSTUDIO) {
+                                        Text("http://localhost:1234")
+                                    }
+                                }
                             )
 
                             // Connection Type
@@ -221,6 +237,42 @@ fun App() {
                                             )
                                             Text(model.toString())
                                         }
+                                    }
+                                }
+                            }
+
+                            // LMStudio model selection (only shown when LMStudio is selected)
+                            if (connectionType == ConnectionType.LMSTUDIO) {
+                                Column {
+                                    LMStudioModel.entries.forEach { model ->
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(vertical = 4.dp)
+                                        ) {
+                                            RadioButton(
+                                                selected = lmStudioModel == model,
+                                                onClick = { lmStudioModel = model }
+                                            )
+                                            Text(model.toString())
+                                        }
+                                    }
+                                    
+                                    // Custom model input field (only shown when Custom is selected)
+                                    if (lmStudioModel == LMStudioModel.CUSTOM) {
+                                        OutlinedTextField(
+                                            value = lmStudioCustomModel,
+                                            onValueChange = { lmStudioCustomModel = it },
+                                            label = { Text("Custom Model Name") },
+                                            placeholder = { Text("e.g., llama-3.1-8b-instruct") },
+                                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                            singleLine = true
+                                        )
+                                        Text(
+                                            "Enter the exact model name as it appears in LMStudio",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
                                     }
                                 }
                             }

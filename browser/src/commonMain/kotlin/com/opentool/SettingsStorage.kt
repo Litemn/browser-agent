@@ -32,6 +32,8 @@ class MultiplatformSettingsStorage(private val settings: Settings) : SettingsSto
         private const val KEY_CONNECTION_TYPE = "connectionType"
         private const val KEY_OPENAI_MODEL = "openAIModel"
         private const val KEY_ANTHROPIC_MODEL = "anthropicModel"
+        private const val KEY_LMSTUDIO_MODEL = "lmStudioModel"
+        private const val KEY_LMSTUDIO_CUSTOM_MODEL = "lmStudioCustomModel"
         private const val KEY_SYSTEM_PROMPT = "systemPrompt"
         private const val KEY_HEADLESS = "headless"
     }
@@ -43,6 +45,8 @@ class MultiplatformSettingsStorage(private val settings: Settings) : SettingsSto
         this.settings.putString(KEY_CONNECTION_TYPE, settings.connectionType.name)
         this.settings.putString(KEY_OPENAI_MODEL, settings.openAIModel.name)
         this.settings.putString(KEY_ANTHROPIC_MODEL, settings.anthropicModel.name)
+        this.settings.putString(KEY_LMSTUDIO_MODEL, settings.lmStudioModel?.name?:"")
+        this.settings.putString(KEY_LMSTUDIO_CUSTOM_MODEL, settings.lmStudioCustomModel)
         this.settings.putString(KEY_SYSTEM_PROMPT, settings.systemPrompt)
         this.settings.putBoolean(KEY_HEADLESS, settings.headless)
     }
@@ -66,6 +70,10 @@ class MultiplatformSettingsStorage(private val settings: Settings) : SettingsSto
                 anthropicModel = AnthropicModel.valueOf(
                     this.settings.getString(KEY_ANTHROPIC_MODEL, AnthropicModel.CLAUDE_3_7_SONNET.name)
                 ),
+                lmStudioModel = LMStudioModel.valueOf(
+                    this.settings.getString(KEY_LMSTUDIO_MODEL, "")
+                ),
+                lmStudioCustomModel = this.settings.getString(KEY_LMSTUDIO_CUSTOM_MODEL, ""),
                 systemPrompt = this.settings.getString(KEY_SYSTEM_PROMPT, AppSettings().systemPrompt),
                 headless = this.settings.getBoolean(KEY_HEADLESS, false)
             )

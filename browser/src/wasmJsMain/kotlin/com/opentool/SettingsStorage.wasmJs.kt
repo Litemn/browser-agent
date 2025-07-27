@@ -16,6 +16,8 @@ class WasmJsSettingsStorage : SettingsStorage {
         private const val KEY_CONNECTION_TYPE = "${PREFIX}connectionType"
         private const val KEY_OPENAI_MODEL = "${PREFIX}openAIModel"
         private const val KEY_ANTHROPIC_MODEL = "${PREFIX}anthropicModel"
+        private const val KEY_LMSTUDIO_MODEL = "${PREFIX}lmStudioModel"
+        private const val KEY_LMSTUDIO_CUSTOM_MODEL = "${PREFIX}lmStudioCustomModel"
         private const val KEY_SYSTEM_PROMPT = "${PREFIX}systemPrompt"
     }
 
@@ -27,6 +29,8 @@ class WasmJsSettingsStorage : SettingsStorage {
         localStorage.setItem(KEY_CONNECTION_TYPE, settings.connectionType.name)
         localStorage.setItem(KEY_OPENAI_MODEL, settings.openAIModel.name)
         localStorage.setItem(KEY_ANTHROPIC_MODEL, settings.anthropicModel.name)
+        localStorage.setItem(KEY_LMSTUDIO_MODEL, settings.lmStudioModel?.name ?: "")
+        localStorage.setItem(KEY_LMSTUDIO_CUSTOM_MODEL, settings.lmStudioCustomModel)
         localStorage.setItem(KEY_SYSTEM_PROMPT, settings.systemPrompt)
     }
 
@@ -50,6 +54,10 @@ class WasmJsSettingsStorage : SettingsStorage {
                 anthropicModel = AnthropicModel.valueOf(
                     localStorage.getItem(KEY_ANTHROPIC_MODEL) ?: AnthropicModel.CLAUDE_3_7_SONNET.name
                 ),
+                lmStudioModel = LMStudioModel.valueOf(
+                    localStorage.getItem(KEY_LMSTUDIO_MODEL) ?: ""
+                ),
+                lmStudioCustomModel = localStorage.getItem(KEY_LMSTUDIO_CUSTOM_MODEL) ?: "",
                 systemPrompt = localStorage.getItem(KEY_SYSTEM_PROMPT) ?: AppSettings().systemPrompt
             )
         } catch (e: Exception) {
