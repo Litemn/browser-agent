@@ -35,11 +35,11 @@ object CurrentBrowser {
      *
      * @return A string indicating the result of the operation
      */
-    fun startBrowser(): String {
+    fun startBrowser(headless: Boolean): String {
         return executeSafely {
             playwright.compareAndSet(null, Playwright.create())
             val playwrightInstance = playwright.load() ?: throw IllegalStateException("Failed to initialize Playwright")
-            browser.exchange(playwrightInstance.chromium().launch(BrowserType.LaunchOptions().setHeadless(false)))
+            browser.exchange(playwrightInstance.chromium().launch(BrowserType.LaunchOptions().setHeadless(headless)))
             val browserInstance = browser.load() ?: throw IllegalStateException("Failed to launch browser")
             page.exchange(browserInstance.newPage())
             "Success: Browser started"

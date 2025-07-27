@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="browser-wasm-js">
+    <output-path>$PROJECT_DIR$/browser/build/libs</output-path>
+    <root id="archive" name="browser-wasm-js.jar">
+      <element id="module-output" name="browser-agent.browser.wasmJsMain" />
+    </root>
+  </artifact>
+</component>

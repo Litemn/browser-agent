@@ -49,7 +49,7 @@ suspend fun main() {
         llmClient = OpenAILLMClient(apiKey = System.getenv("OPENAI_API_KEY") ?: error("OPENAI_API_KEY not set")),
     )
     val agent = BrowserAgent(settings)
-    agent.agent.runAndGetResult("1. Open github playwright repository\n" +
+    agent.agent.run("1. Open github playwright repository\n" +
             "2. Open the pull requests\n" +
             "3. Find and open latest pull request\n" +
             "4. Give a short description of change")

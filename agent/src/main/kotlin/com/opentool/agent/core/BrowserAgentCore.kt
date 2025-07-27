@@ -3,13 +3,16 @@ package com.opentool.agent.core
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
+import ai.koog.agents.core.tools.Tool
 import ai.koog.agents.core.tools.ToolRegistry
+import ai.koog.agents.core.tools.reflect.asTools
 import ai.koog.agents.features.eventHandler.feature.EventHandler
+import ai.koog.agents.features.eventHandler.feature.EventHandlerConfig
 import ai.koog.prompt.executor.clients.LLMClient
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import com.opentool.agent.BrowserAgentSettings
-import com.opentool.plugin.ToolPluginRegistry
+import com.opentool.playwright.PlaywrightAgentTools
 import kotlin.uuid.ExperimentalUuidApi
 
 /**
@@ -21,9 +24,11 @@ import kotlin.uuid.ExperimentalUuidApi
  */
 class BrowserAgentCore(
     private val llmClient: LLMClient,
-    private val strategy: AIAgentStrategy,
+    private val strategy: AIAgentStrategy<String, String>,
     private val agentConfig: AIAgentConfig,
-    private val pluginRegistry: ToolPluginRegistry = ToolPluginRegistry.getInstance()
+    private val eventHandler: EventHandlerConfig.() -> Unit = {},
+    private val headless: Boolean = false,
+    private val tools: List<Tool<*, *>> = PlaywrightAgentTools(headless).asTools(),
 ) {
     /**
      * Create an AIAgent with the configured settings and tools.
@@ -31,14 +36,7 @@ class BrowserAgentCore(
      * @return An AIAgent instance.
      */
     @OptIn(ExperimentalUuidApi::class)
-    fun createAgent(): AIAgent {
-        // Discover plugins if they haven't been discovered yet
-        if (pluginRegistry.getAllPlugins().isEmpty()) {
-            pluginRegistry.discoverPlugins()
-        }
-
-        // Get all tools from all registered plugins
-        val tools = pluginRegistry.getAllTools()
+    fun createAgent(): AIAgent<String, String> {
 
         // Create prompt executor
         val promptExecutor: PromptExecutor = SingleLLMPromptExecutor(
@@ -51,23 +49,25 @@ class BrowserAgentCore(
         }
 
         // Create and return the agent
-        return AIAgent(
+        return AIAgent<String, String>(
             promptExecutor = promptExecutor,
             strategy = strategy,
             agentConfig = agentConfig,
             toolRegistry = toolRegistry
         ) {
             install(EventHandler) {
-                onToolCall = { tool, arg ->
-                    println("Tool call: ${tool.name} with args: $arg")
+                onToolCall { event ->
+                    println("Tool call: ${event.tool.name} with args: ${event.toolArgs}")
                 }
-                onToolCallResult = { tool, toolArgs, result ->
-                    println("Result: ${tool.name}, $toolArgs, ${result?.toStringDefault()}")
+                onToolCallResult { event ->
+                    println("Result: ${event.tool.name}, ${event.toolArgs}, ${event.result?.toStringDefault()}")
                 }
-                onAgentFinished = { strategyName, result ->
-                    println("Agent finished: $strategyName, $result")
+                onAgentFinished { event ->
+                    println("Agent finished: $event, ${event.result}")
                 }
             }
+            install(EventHandler, eventHandler)
+
         }
     }
 
@@ -82,7 +82,10 @@ class BrowserAgentCore(
             return BrowserAgentCore(
                 llmClient = settings.llmClient,
                 strategy = settings.strategy,
-                agentConfig = settings.agentConfig
+                agentConfig = settings.agentConfig,
+                eventHandler = settings.eventHandler,
+                headless = settings.headless,
+                tools = settings.tools,
             )
         }
     }
